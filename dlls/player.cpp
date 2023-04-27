@@ -3620,11 +3620,18 @@ void CBasePlayer::GiveNamedItem(const char* szName, int defaultAmmo)
 	DispatchTouch(pent, ENT(pev));
 }
 
+/*
+===============
+Flashlight
+
+Flashlight from Half-Life 1
+===============
+*/
+
 bool CBasePlayer::FlashlightIsOn()
 {
-	return FBitSet(pev->effects, EF_BRIGHTLIGHT);
+	return FBitSet(pev->effects, EF_DIMLIGHT);
 }
-
 
 void CBasePlayer::FlashlightTurnOn()
 {
@@ -3635,8 +3642,8 @@ void CBasePlayer::FlashlightTurnOn()
 
 	if (HasSuit())
 	{
-		EMIT_SOUND_DYN(ENT(pev), CHAN_WEAPON, SOUND_FLASHLIGHT_ON, 1.0, ATTN_NORM, 0, PITCH_NORM);
-		SetBits(pev->effects, EF_BRIGHTLIGHT);
+		EMIT_SOUND_DYN(ENT(pev), CHAN_WEAPON, SOUND_FLASHLIGHT_ON_OFF, 1.0, ATTN_NORM, 0, PITCH_NORM);
+		SetBits(pev->effects, EF_DIMLIGHT);
 		MESSAGE_BEGIN(MSG_ONE, gmsgFlashlight, NULL, pev);
 		WRITE_BYTE(1);
 		WRITE_BYTE(m_iFlashBattery);
@@ -3646,12 +3653,56 @@ void CBasePlayer::FlashlightTurnOn()
 	}
 }
 
-
 void CBasePlayer::FlashlightTurnOff()
 {
-	EMIT_SOUND_DYN(ENT(pev), CHAN_WEAPON, SOUND_FLASHLIGHT_OFF, 1.0, ATTN_NORM, 0, PITCH_NORM);
-	ClearBits(pev->effects, EF_BRIGHTLIGHT);
+	EMIT_SOUND_DYN(ENT(pev), CHAN_WEAPON, SOUND_FLASHLIGHT_ON_OFF, 1.0, ATTN_NORM, 0, PITCH_NORM);
+	ClearBits(pev->effects, EF_DIMLIGHT);
 	MESSAGE_BEGIN(MSG_ONE, gmsgFlashlight, NULL, pev);
+	WRITE_BYTE(0);
+	WRITE_BYTE(m_iFlashBattery);
+	MESSAGE_END();
+
+	m_flFlashLightTime = FLASH_CHARGE_TIME + gpGlobals->time;
+}
+
+/*
+===============
+NightVision
+
+Night Vision from Opposing Force
+===============
+*/
+
+bool CBasePlayer::NightVisionIsOn()
+{
+	return FBitSet(pev->effects, EF_BRIGHTLIGHT);
+}
+
+void CBasePlayer::NightVisionTurnOn()
+{
+	if (!g_pGameRules->FAllowFlashlight())
+	{
+		return;
+	}
+
+	if (HasSuit())
+	{
+		EMIT_SOUND_DYN(ENT(pev), CHAN_WEAPON, SOUND_NIGHTVISION_ON, 1.0, ATTN_NORM, 0, PITCH_NORM);
+		SetBits(pev->effects, EF_BRIGHTLIGHT);
+		MESSAGE_BEGIN(MSG_ONE, gmsgNightvision, NULL, pev);
+		WRITE_BYTE(1);
+		WRITE_BYTE(m_iFlashBattery);
+		MESSAGE_END();
+
+		m_flFlashLightTime = FLASH_DRAIN_TIME + gpGlobals->time;
+	}
+}
+
+void CBasePlayer::NightVisionTurnOff()
+{
+	EMIT_SOUND_DYN(ENT(pev), CHAN_WEAPON, SOUND_NIGHTVISION_OFF, 1.0, ATTN_NORM, 0, PITCH_NORM);
+	ClearBits(pev->effects, EF_BRIGHTLIGHT);
+	MESSAGE_BEGIN(MSG_ONE, gmsgNightvision, NULL, pev);
 	WRITE_BYTE(0);
 	WRITE_BYTE(m_iFlashBattery);
 	MESSAGE_END();
@@ -3732,7 +3783,9 @@ void CBasePlayer::ImpulseCommands()
 			gmsgLogo = 0;
 		break;
 	}
+	
 	case 100:
+	{
 		// temporary flashlight for level designers
 		if (FlashlightIsOn())
 		{
@@ -3743,9 +3796,24 @@ void CBasePlayer::ImpulseCommands()
 			FlashlightTurnOn();
 		}
 		break;
+	}
+
+	case 200:
+	{
+		// temporary nightvision for level designers
+		if (NightVisionIsOn())
+		{
+			NightVisionTurnOff();
+		}
+		else
+		{
+			NightVisionTurnOn();
+		}
+		break;
+	}
 
 	case 201: // paint decal
-
+	{
 		if (gpGlobals->time < m_flNextDecalTime)
 		{
 			// too early!
@@ -3763,6 +3831,7 @@ void CBasePlayer::ImpulseCommands()
 		}
 
 		break;
+	}
 
 	case 204:
 	{
@@ -3813,7 +3882,6 @@ void CBasePlayer::CheatImpulseCommands(int iImpulse)
 		}
 		break;
 	}
-
 
 	case 101:
 		gEvilImpulse101 = true;
@@ -4337,6 +4405,14 @@ void CBasePlayer::UpdateClientData()
 					WRITE_BYTE(m_iFlashBattery);
 					MESSAGE_END();
 				}
+
+				if (NightVisionIsOn())
+				{
+					MESSAGE_BEGIN(MSG_ONE, gmsgNightvision, NULL, pev);
+					WRITE_BYTE(static_cast<int>(NightVisionIsOn()));
+					WRITE_BYTE(m_iFlashBattery);
+					MESSAGE_END();
+				}
 			}
 		}
 
@@ -4460,6 +4536,14 @@ void CBasePlayer::UpdateClientData()
 		if (FlashlightIsOn())
 		{
 			MESSAGE_BEGIN(MSG_ONE, gmsgFlashlight, NULL, pev);
+			WRITE_BYTE(1);
+			WRITE_BYTE(m_iFlashBattery);
+			MESSAGE_END();
+		}
+
+		if (NightVisionIsOn())
+		{
+			MESSAGE_BEGIN(MSG_ONE, gmsgNightvision, NULL, pev);
 			WRITE_BYTE(1);
 			WRITE_BYTE(m_iFlashBattery);
 			MESSAGE_END();

@@ -60,8 +60,9 @@ class CRope;
 
 #define CSUITNOREPEAT 32
 
-#define SOUND_FLASHLIGHT_ON "items/flashlight1.wav"
-#define SOUND_FLASHLIGHT_OFF "items/flashlight2.wav"
+#define SOUND_NIGHTVISION_ON "items/nightvision_off.wav"
+#define SOUND_NIGHTVISION_OFF "items/nightvision_on.wav"
+#define SOUND_FLASHLIGHT_ON_OFF "items/flashlight_on_off.wav"
 
 #define TEAM_NAME_LENGTH 16
 
@@ -304,9 +305,14 @@ public:
 	int ObjectCaps() override { return CBaseMonster::ObjectCaps() & ~FCAP_ACROSS_TRANSITION; }
 	void Precache() override;
 	bool IsOnLadder();
+	
 	bool FlashlightIsOn();
 	void FlashlightTurnOn();
 	void FlashlightTurnOff();
+
+	bool NightVisionIsOn();
+	void NightVisionTurnOn();
+	void NightVisionTurnOff();
 
 	void UpdatePlayerSound();
 	void DeathSound() override;
